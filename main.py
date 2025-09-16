@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from auth.routes import router as auth_router
-from routes.root import router as root_router
 from routes.users import router as users_router
 from routes.subjects import router as subjects_router
 from routes.notes import router as notes_router
@@ -12,7 +11,6 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
-app.include_router(root_router)
 app.include_router(users_router)
 app.include_router(subjects_router)
 app.include_router(notes_router)
