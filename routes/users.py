@@ -7,6 +7,9 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from auth.dependencies import get_current_user
 from fastapi import Depends
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
@@ -15,20 +18,9 @@ class UserUpdate(BaseModel):
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-@router.get("/")
-async def get_users(current_user: dict = Depends(get_current_user)):
-    users = []
-    for user in usuarios_collection.find():
-        users.append(serialize_doc(user))
-    return JSONResponse(content=users)
-
 @router.get("/me")
 async def get_user(current_user: dict = Depends(get_current_user)):
     return current_user
-
-
-from passlib.context import CryptContext
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 @router.put("/me", response_model=UserModel)
 async def update_user(user: UserUpdate, current_user: dict = Depends(get_current_user)):
@@ -41,4 +33,11 @@ async def update_user(user: UserUpdate, current_user: dict = Depends(get_current
     if result.matched_count == 1:
         updated_user = usuarios_collection.find_one({"_id": ObjectId(current_user["id"])})
         return serialize_doc(updated_user)
+    raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+@router.delete("/me")
+async def delete_me(current_user: dict = Depends(get_current_user)):
+    result = usuarios_collection.delete_one({"_id": ObjectId(current_user["id"])})
+    if result.deleted_count == 1:
+        return JSONResponse(content={"message": "Usuario eliminado. Sesión cerrada, vuelva a autenticarse."})
     raise HTTPException(status_code=404, detail="Usuario no encontrado")
