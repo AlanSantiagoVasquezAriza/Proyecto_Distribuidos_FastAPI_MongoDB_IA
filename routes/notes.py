@@ -70,6 +70,19 @@ async def get_note(note_id: str, current_user: dict = Depends(get_current_user))
         "preguntas": preguntas
     }
 
+@router.get("/by-subject/{subject_id}")
+async def get_notes_by_subject(subject_id: str, current_user: dict = Depends(get_current_user)):
+    notes = []
+    query = {
+        "$and": [
+            {"user_id": {"$in": [ObjectId(current_user["id"]), str(current_user["id"]) ]}},
+            {"subject_id": {"$in": [ObjectId(subject_id), str(subject_id)] }}
+        ]
+    }
+    for note in notas_collection.find(query):
+        notes.append(serialize_doc(note))
+    return JSONResponse(content=notes)
+
 @router.post("/", response_model=NoteModel)
 async def create_note(note: NoteModel, current_user: dict = Depends(get_current_user)):
     # Verificar que el subject_id existe
