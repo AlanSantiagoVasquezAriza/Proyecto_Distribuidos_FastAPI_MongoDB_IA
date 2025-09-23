@@ -1,6 +1,6 @@
 from bson import ObjectId
 from fastapi.params import Depends
-from database.db import materias_collection, usuarios_collection, serialize_doc
+from database.db import materias_collection, usuarios_collection, notas_collection, serialize_doc
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from models.subjects import SubjectModel, SubjectUpdate
@@ -16,7 +16,14 @@ router = APIRouter(prefix="/subjects", tags=["Subjects"])
 async def get_subjects(current_user: dict = Depends(get_current_user)):
     subjects = []
     for subject in materias_collection.find({"user_id": ObjectId(current_user["id"])}):
-        subjects.append(serialize_doc(subject))
+        doc = serialize_doc(subject)
+        # Contar cuántas notas hay en la materia consultando la colección de notas
+        notas_count = notas_collection.count_documents({
+            "user_id": {"$in": [ObjectId(current_user["id"]), str(current_user["id"])]},
+            "subject_id": {"$in": [doc["id"], ObjectId(doc["id"])]}
+        })
+        doc["notas_count"] = notas_count
+        subjects.append(doc)
     return JSONResponse(content=subjects)
 
 @router.get("/{subject_id}")
